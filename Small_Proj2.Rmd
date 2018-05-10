@@ -1,0 +1,178 @@
+---
+title: "Small2"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+library(ggplot2)
+library(tidyr)
+library(vcd)
+library(RColorBrewer)
+#setwd("C:/Users/sasaha/Documents/Small_Proj")
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r}
+file = "concussion.dat"
+Concussions = read.table("http://www.stat.ufl.edu/~winner/data/concussion.dat", header = FALSE)
+```
+
+```{r}
+
+names(Concussions) = c('gender', 'sport', 'year', 'concussion_id', 'count')
+Concussions.agg = spread(Concussions, concussion_id, count)
+names(Concussions.agg) = c('gender', 'sport', 'year', 'concussion_0', 'concussion_1')
+Concussions.agg$actual = round(Concussions.agg$concussion_1/(Concussions.agg$concussion_0 + Concussions.agg$concussion_1))
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+### Question 1
+#1.1
+```{r}
+Concussions.logistic = glm(cbind(concussion_1, concussion_0) ~ gender + sport + year, family = binomial, data = Concussions.agg)
+Concussions.logistic.fitted = fitted.values(Concussions.logistic)
+Concussions.logistic.residuals = residuals(Concussions.logistic, type = "response")
+#model fit
+Concussions.logistic.df = data.frame(.fitted = Concussions.logistic.fitted, .residuals = Concussions.logistic.residuals)
+ggplot(Concussions.logistic.df, aes(x = .fitted, y = .residuals)) + geom_point() + geom_smooth(span = 1, method.args = list(degree = 1))
+
+```
+
+### 1.2
+
+Null model is defined by using '1' as a predictor its predictions turn out to be the same as the actual model. Both have the same error rate - 0%. In all cases, the predictions are very close to 0. This is because the count of 0's is far higher than the count of 1's in the dataset,
+for every combination of year-gender-sport, the number of 0's is far higher than the number of 1s
+so the model ends up predicting the majority class in all the cases.
+The model doesn't have superior prediction powers, its only predicting the majority class as of now for the model with the 3 variables, the coefficients are all very small when compared to the intercept for the null model, there is only the intercept, since both behave like intercept only models, and always predict the majority class, their results and error rates are the same
+but this doesn't mean that the model with variables is useless. We still get to know about variable importance. For instance, based on the coefficients we can see that gymnastics and softball/baseball have lower risk of concussion
+
+```{r}
+Concussions.logistic.null = glm(cbind(concussion_1, concussion_0) ~ 1, family = binomial, data = Concussions.agg)
+Concussions.logistic.null.fitted = fitted.values(Concussions.logistic)
+results = cbind(Concussions.agg$actual, round(Concussions.logistic.fitted))
+error.rate = length(results[results[1] != results[2]])*100/length(results)
+results.null = cbind(Concussions.agg$actual, round(Concussions.logistic.null.fitted))
+error.rate.null = length(results.null[results.null[1] != results.null[2]])*100/length(results.null)
+```
+
+
+#### Question 2
+## 2.1 - Mosaic
+```{r}
+mosaic.table = xtabs(concussion_1 ~ sport + gender + year, data = Concussions.agg)
+#mosaic.table_0 = xtabs(concussion_0 ~ gender + sport + year, data = Concussions.agg)
+```
+
+we see that gymnastics and softball have the least number of collisions soccer has the most.
+
+```{r}
+mosaic(~sport + year, mosaic.table, highlighting="sport",highlighting_fill=brewer.pal(5,"Spectral"),direction = "h", rot_labels=c(0,0,0,0) )
+
+
+```
+
+Female soccer players and male lacrosse players have high risk of concussion
+
+```{r}
+mosaic(~sport + gender, mosaic.table,pop = FALSE, highlighting="sport",highlighting_fill=brewer.pal(5,"Set3"), direction = "h", rot_labels=c(0,0,0,0))
+```
+
+Nothing really useful can be said by crossing gender, year and sport
+```{r}
+mosaic(~year + gender, mosaic.table, pop = FALSE, highlighting="gender",highlighting_fill=brewer.pal(5,"Set3"), direction = "h", rot_labels=c(0,0,0,0))
+```
+
+
+## 2.1 - Bar
+Can see how different genders get concussions in different sports from this faceted plot
+```{r}
+ggplot(Concussions.agg, aes(x = gender, y = concussion_1, color = gender, fill=  gender)) + geom_bar(stat = "identity") +
+  facet_wrap(~sport)
+```
+
+## 2.2 
+
+a) 
+
+```{r}
+Concussions.poisson = glm(concussion_1 ~ gender + sport + factor(year), family = poisson, data = Concussions.agg)
+Concussions.poisson.fitted = fitted.values(Concussions.poisson)
+Concussions.poisson.residuals = residuals(Concussions.poisson, type = "response")
+Concussions.poisson.std.residuals = Concussions.poisson.residuals/sqrt(Concussions.poisson.fitted)
+overdispersion = sum(Concussions.poisson.std.residuals^2)/df.residual(Concussions.poisson)
+overdispersion
+```
+There isn't much overdispersion, the value is slightly greater than 1. Overdispersion is when the value is much larger than 1.
+Refitt the Poisson regression using Lacrosse as the baseline for sport.
+
+b) Changing the baseline doesn't give any new insight, the coefficients still follow a very similar pattern
+```{r}
+Concussions.poisson.quasi = glm(concussion_1 ~ factor(gender) + factor(sport, levels = c('Lacrosse', 'Basketball', 'Gymnastics', 'Soccer', 'Softball/Baseball')) + factor(year), family = quasipoisson, data = Concussions.agg)
+Concussions.poisson.fitted = fitted.values(Concussions.poisson)
+
+
+#conc.glm2 = glm(count ~ factor(sport, levels = c("Lacrosse","Basketball","Gymnastics","Soccer","Softball/Baseball"))
+#                +factor(gender)+year, family = poisson, data = conc_1)
+```
+
+```{r}
+
+```
+
+```{r}
+sport.co = coefficients(summary(Concussions.poisson.quasi))[1:5, 1:2]
+sports = c('Basketball', 'Gymnastics', 'Soccer', 'Softball/Baseball')
+estimate = exp(sport.co[2:5, 1])
+lower = exp(sport.co[2:5, 1] - 2 * sport.co[2:5, 2])
+upper = exp(sport.co[2:5, 1] + 2 * sport.co[2:5, 2])
+sport.co.df = data.frame(sports, estimate, lower, upper)
+
+ggplot(sport.co.df, aes(x = sports, y = estimate, ymin = lower, ymax = upper)) +
+  geom_pointrange() + ylim(1, 2) + geom_abline(intercept = 1, slope = 0, color = "red") +
+  ylab("Ratio of concussion count to that of Lacrosse") +
+  ggtitle("Approximate 95% confidence intervals") +
+  coord_flip()
+```
+
+
+```{r}
+conc.glm2 = glm(concussion_1 ~ factor(sport, levels = c("Lacrosse","Basketball","Gymnastics","Soccer","Softball/Baseball"))
+                +factor(gender)+year, family = poisson, data = Concussions.agg)
+sport.co = coefficients(summary(conc.glm2))[1:5, 1:2]
+sports = c("Basketball","Gymnastics","Soccer","Softball/Baseball")
+estimate = exp(sport.co[2:5, 1])
+lower = exp(sport.co[2:5, 1] - 2 * sport.co[2:5, 2])
+upper = exp(sport.co[2:5, 1] + 2 * sport.co[2:5, 2])
+sport.co.df = data.frame(sports, estimate, lower, upper)
+
+ggplot(sport.co.df, aes(x = sports, y = estimate, ymin = lower, ymax = upper)) +
+  geom_pointrange() + ylim(1, 2) + geom_abline(intercept = 1, slope = 0, color = "red") +
+  ylab("Ratio of concussion count to that of Lacrosse") +
+  ggtitle("Approximate 95% confidence intervals") +
+  coord_flip()
+```
+
+```{r}
+sport.co
+```
+
+
+
+
+
+
+
