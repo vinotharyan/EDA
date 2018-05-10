@@ -1,0 +1,128 @@
+---
+title: "Problem_Set_6"
+author: "Syam Sundar Heler"
+date: "November 6, 2017"
+output: word_document
+---
+solution 1:
+```{r}
+
+library('MASS')
+library('mda')
+
+testda<-Pima.te
+trainda<-Pima.tr
+
+ldam <- lda(type~npreg+glu+bp+skin+bmi+ped+age,data=trainda)
+ldamp=predict(ldam,testda)
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+print("  Report for LDA  ")
+clda <- table(matrix(c(ldamp$class), ncol=1), matrix(c(testda$type), ncol=1))
+print("Confusion Matrix ")
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+clda
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+print("Rate of Mis_classfication ")
+mean(matrix(c(ldamp$class) != matrix(c(testda$type))))
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+
+```
+
+```{r}
+mdam <- mda(type~npreg+glu+bp+skin+bmi+ped+age,data=trainda)
+mdamp=predict(mdam,testda)
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+print("  Report for MDA  ")
+cmda <- table(matrix(c(mdamp), ncol=1), matrix(c(testda$type), ncol=1))
+print("Confusion Matrix ")
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+cmda
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+print("Rate of Mis_classfication ")
+mean(matrix(c(mdamp) != matrix(c(testda$type))))
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+
+```
+quadratic discriminant analysis
+
+```{r}
+
+qdam <- qda(type~npreg+glu+bp+skin+bmi+ped+age,data=trainda)
+qdamp=predict(qdam,testda)
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+print("  Report for QDA  ")
+qlda <- table(matrix(c(qdamp$class), ncol=1), matrix(c(testda$type), ncol=1))
+print("Confusion Matrix ")
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+qlda
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+print("Rate of Mis_classfication ")
+mean(matrix(c(qdamp$class) != matrix(c(testda$type))))
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+
+```
+
+
+
+
+Q 2 
+```{r}
+library("tree")
+t_m <- tree(Ozone~Wind+Temp,data=airquality)
+summary(t_m)
+plot(t_m)
+text(t_m,cex=.75)
+```
+
+
+
+The predictors variable are temp and wind and the response variable is ozone.if we see above given tree its clear that temp is more than 87.5 and ozone will be 90 along with the wind.
+Here is proper explaination of tree 
+* if temp value in between 85.5 and 87.5 its clear that ozone value is in 72.3 and wind is lower than 8.9
+* if temp value in between 85.5 and 87.5 its clear that ozone less than 45.5 and wind is higher than 8.9
+* if wind value lower than 7.15 and the  ozone vlaue in 25.4 and temp vlaue is 78.5
+* if wind value lower than 7.15 and  the ozone vlaue in 85.8 and temp vlaue is greatan than 78.5
+* if wind value greater than 7.15 and  the ozone vlaue in 18.4 and temp vlaue is less than 77.5and with wind value greater than 7.15 and ozone vlaue in 31.14 and temp is greater than 77.5.
+
+
+ 
+ 
+q 3 solution
+ 
+```{r}
+library('mda')
+set.seed(200)
+data(glass)
+
+train_d = glass[sample(nrow(glass),170),]
+test_d = glass[-sample(nrow(glass),170),]
+```
+
+# Linear discriminant analysis
+
+```{r}
+ldam <- lda(Type~RI+Na+Mg+Al+Si+K+Ca+Ba+Fe,data=train_d)
+ldamp=predict(ldam,test_d)
+mean(matrix(c(ldamp$class) != matrix(c(test_d$Type))))
+
+```
+
+mixture discriminant analysis
+```{r}
+mdam <- mda(Type~RI+Na+Mg+Al+Si+K+Ca+Ba+Fe,data=train_d)
+mdamp=predict(mdam,test_d)
+mean(matrix(c(mdamp) != matrix(c(test_d$Type))))
+
+```
+
+```{r}
+trm = tree(Type~(RI+Na+Mg+Al+Si+K+Ca+Ba+Fe),data=train_d)
+
+trmp <- predict(trm,test_d)
+mean(matrix(c(trmp) != matrix(c(test_d$Type))))
+plot(trm)
+text(trm)
+```
+
+based on the given three analysis 
+tree is the wrost model and ldm is the best model
